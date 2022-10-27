@@ -1,0 +1,56 @@
+service:
+  name: snn-lambda-nft-1
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+  serverless-iam-roles-per-function:
+    defaultInherit: true # Each function will inherit the service level roles too.
+  globalTables:
+    regions:
+      - us-east-1
+    createStack: true
+  prune:
+    automatic: true
+    number: 3
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+  - serverless-iam-roles-per-function
+  - serverless-prune-plugin
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  frameworkVersion: '2.17.0'
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+  environment:
+    DEBUG: '*'
+    NODE_ENV: ${self:provider.stage}
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    INFURA_URL: 'https://rinkeby.infura.io/v3/'
+    IPFS_URL: 'https://gateway.pinata.cloud/ipfs/'
+    SECRET_PARAM: 'SNN-001'
+  tracing:
+    lambda: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - xray:PutTraceSegments
+        - xray:PutTelemetryRecords
+        - secretsManager:GetSecretValue
+      Resource: "*"
+
+functions:
+  getTokenURI:
+    handler: src/handler.snft
+    events:
+     - http:
+        path: tokenURI
+        method: post
+        cors: true
